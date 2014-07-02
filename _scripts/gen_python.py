@@ -52,7 +52,8 @@ tags = {
     '~, not_': [(query, '__invert__'), (query, 'not_'), ('rethinkdb.', 'not_')],
     'r': [('', 'rethinkdb')],
     'repl': [('rethinkdb.net.Connection.', 'repl')],
-    'count': lambda parent: not parent == 'rethinkdb.' and [(query, 'count')] or []
+    'count': lambda parent: not parent == 'rethinkdb.' and [(query, 'count')] or [],
+    'rethinkdb': [('', 'rethinkdb')]
 }
 
 # Write the header of the docs.py file
@@ -207,6 +208,7 @@ def add_doc(file_name, result_file):
         for parent, name in names:
             result_file.write("\n\t(" + parent + name + ", " + encoded + '),')
     else: # If the command has just one name and one parent
+        assert parent not in (None, ''), 'Missing the parent entry for: %s in %s' % (name, file_name)
         result_file.write("\n\t(" + parent + name + ", " + encoded + '),')
 
 if __name__ == "__main__":
