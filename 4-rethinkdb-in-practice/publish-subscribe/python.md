@@ -3,13 +3,13 @@ layout: documentation
 title: Publish-Subscribe with RethinkDB
 active: docs
 docs_active: publish-subscribe
-permalink: docs/python/publish-subscribe/
+permalink: docs/publish-subscribe/python/
 switcher: true
 language: Python
 ---
 
 The
-[publish-subscribe pattern](http://en.wikipedia.org/wiki/Publish%E2%80%93Subscribe_pattern)
+[publish-subscribe pattern](http://en.wikipedia.org/wiki/Publish-subscribe)
 is a powerful way to decouple applications that need to
 communicate. RethinkDB [changefeeds](/docs/changefeeds) allow us to
 implement publish-subscribe with the database acting as a message
@@ -177,7 +177,7 @@ batman_query = lambda topic: topic['teamup']['superheroes'].contains('Batman')
 ```
 
 
-## Repubsub demo script ##
+## Trying out the repubsub demo ##
 
 The example documentation includes a
 [demo script](https://github.com/rethinkdb/example-pubsub/blob/master/python/demo.py')
@@ -202,10 +202,10 @@ $ ./demo.py regex subscribe
 
 You can run the `tags` and `hierarchy` demos the same way.
 
-# How we repubsub is implemented #
+# How the library is implemented #
 
-As mentioned above, the implementation of the repubsub library is
-built using RethinkDB changefeeds. Briefly, here's how it works:
+As mentioned above, the repubsub library is built using RethinkDB
+changefeeds. Briefly, here's how it works:
 
 * Each exchange is a single RethinkDB table
 * Each document in the table has 4 keys: `id`, `topic`, `payload`, and
