@@ -89,7 +89,7 @@ topic.publish({
 ```
 
 In the subscribing application we need to create a queue to receive
-and buffer messages. The queue takes a filtering function as an
+and buffer messages. The queue takes a ReQL filtering function as an
 argument. This is similar to what you would pass to
 [filter](/api/python/filter). Here we'll subscribe to all messages
 about superhero fights:
@@ -117,7 +117,8 @@ can make the topic an actual JSON array, and use ReQL's
 [contains](/api/python/contains) method to do the filtering.
 
 So, for example, if we wanted to send a notification that Batman and
-the Joker had a fight:
+the Joker had a fight, we might publish with the tags `#superhero`,
+`#fight`, and `#supervillain`:
 
 ```python
 topic = exchange.topic(['superhero', 'fight', 'supervillain'])
@@ -177,7 +178,7 @@ batman_query = lambda topic: topic['teamup']['superheroes'].contains('Batman')
 ```
 
 
-## Trying out the repubsub demo ##
+## Try out the repubsub demo ##
 
 The example documentation includes a
 [demo script](https://github.com/rethinkdb/example-pubsub/blob/master/python/demo.py')
@@ -235,16 +236,3 @@ the topic field from the new value down to the subscriber's function.
 for message in self.full_query(binding).run(self.conn):
     yield message['topic'], message['payload']
 ```
-
-## Caveats ##
-
-While repubsub is easy to use, it doesn't come with any testing. It's
-intended as an example of using publish-subscribe and if you intend to
-use it in production, it's a good idea to do extensive testing first
-to make sure it works for your use case.
-
-Also, users should be aware that RethinkDB provides no guaranteed
-delivery for change notifications. Because of that, repubsub is not a
-good choice to build a task queue where lost tasks are a serious
-issue. Many applications, (for example: push notifications to users),
-aren't as sensitive to lost messages, and repubsub is a better choice.
