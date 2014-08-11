@@ -213,13 +213,22 @@ changefeeds. Briefly, here's how it works:
   `_force_change`.
     * For every message sent, repubsub sets the `_force_change` key
       randomly
-    * RethinkDB doesn't generate a change notification if a document
-      is updated to an identical value, so we force a change.
 * When posting a message to a topic, first repubsub attempts to
   overwrite a document with the exact same topic. If the exact topic
   isn't found, it creates a new document with the topic.
 * Subscribers create a changefeed on the `Exchange`'s table, filtering
   for changes that mention documents matching their topic queries.
+
+A key point to notice is that we don't actually care about the
+document being stored in the table. We only create and update
+documents because that forces RethinkDB to create a change
+notification. These change notifications are the messages we want to
+send to subscribers. Ultimately, the table ends up with lots of
+documents that have whatever the last message happened to be inside
+them. But at no point do we read those documents directly as a
+subscriber. This is why we must add the `_force_change` field, so that
+even if the document's payload hasn't changed, a change notification
+will still be generated.
 
 The entire changefeed query on the exchange is:
 
