@@ -3,9 +3,9 @@ layout: documentation
 title: Publish-Subscribe with RethinkDB
 active: docs
 docs_active: publish-subscribe
-permalink: docs/publish-subscribe/python/
+permalink: docs/publish-subscribe/ruby/
 switcher: true
-language: Python
+language: Ruby
 ---
 
 The
@@ -14,8 +14,8 @@ is a powerful way to decouple applications that need to
 communicate. RethinkDB [changefeeds](/docs/changefeeds) allow us to
 implement publish-subscribe with the database acting as a message
 exchange. We've built a small example library called
-[repubsub](https://github.com/rethinkdb/example-pubsub/tree/master/python)
-implementing the pattern for use in Python applications.
+[repubsub](https://github.com/rethinkdb/example-pubsub/tree/master/ruby)
+implementing the pattern for use in Ruby applications.
 
 This article will explain how to use repubsub, as well as describe how
 it's implemented on top of changefeeds. If your application needs
@@ -58,11 +58,11 @@ The repubsub library has three classes:
 
 To import repubsub and create a connection to an exchange:
 
-```python
-import repubsub
+```ruby
+require 'repubsub'
 
-exchange = repubsub.Exchange(
-    'pubsub_demo', db='repubsub', host='localhost', port=28015)
+exchange = Repubsub::Exchange.new(:pubsub_demo,
+    :db => 'repubsub', :host => 'localhost', :port => 28015)
 ```
 
 ## Subscribing to topics using regex ##
@@ -72,37 +72,35 @@ topic. This lends itself to using regexes for filtering.
 
 To publish a message to the exchange, create a topic:
 
-```python
+```ruby
 topic = exchange.topic('fights.superheroes.batman')
 ```
 
 Now we can publish any arbitrary JSON document to the topic:
 
-```python
-topic.publish({
-    'opponent': 'Joker',
-    'victory': True,
-})
+```ruby
+message = {:opponent => 'Joker', :victory => True}
+topic.publish(payload)
 ```
 
 In the subscribing application we need to create a queue to receive
 and buffer messages. The queue takes a ReQL filtering function as an
 argument. This is similar to what you would pass to
-[filter](/api/python/filter). Here we'll subscribe to all messages
+[filter](/api/ruby/filter). Here we'll subscribe to all messages
 about superhero fights:
 
-```python
-filter_func = lambda topic: topic.match(r'fights\.superheroes.*')
-queue = exchange.queue(filter_func)
+```ruby
+queue = exchange.queue{|topic| topic.match('fights\.superheroes.*')}
 ```
 
-Then, to listen to messages, just iterate over the `.subscription()`
+Then, to listen to messages, just iterate over the `.subscription`
 method on the queue:
 
-```python
-for topic, payload in queue.subscription():
-    print 'I got the topic:', topic
-    print 'With the message:', payload
+```ruby
+queue.subscription.each do |topic,payload|
+  puts "I got the topic: #{topic}"
+  puts "With the message: #{payload}"
+end
 ```
 
 ## Subscribing to topics using tags ##
@@ -111,28 +109,27 @@ You can also filter messages by tags. We could put the tags into a
 string and build a regex to match messages with the tags we want, but
 luckily we have the full power of ReQl at our disposal. Instead, we
 can make the topic an actual JSON array, and use ReQL's
-[contains](/api/python/contains) method to do the filtering.
+[contains](/api/ruby/contains) method to do the filtering.
 
 So, for example, if we wanted to send a notification that Batman and
 the Joker had a fight, we might publish with the tags `#superhero`,
 `#fight`, and `#supervillain`:
 
-```python
+```ruby
 topic = exchange.topic(['superhero', 'fight', 'supervillain'])
-topic.publish({
-    'interaction_type': 'tussle',
-    'participants': ['Batman', 'Joker'],
-})
+message = {:interaction_type => 'tussle', :participants => ['Batman', 'Joker']}
+topic.publish(message)
 ```
 
 Then, subscribers could listen for messages with any combination of tags:
 
-```python
-filter_func = lambda tags: tags.contains('fight', 'superhero')
+```ruby
+filter_func = lambda {|tags| tags.contains('fight', 'superhero')}
 
-for tags, payload in exchange.queue(filter_func).subscribe():
-    fighter1, fighter2 = payload['participants']
-    print fighter1, 'got in a fight with', fighter2
+exchange.queue(filter_func).subscription.each do |tags,payload|
+  fighter1, fighter2 = payload['participants']
+  puts "#{fighter1} got in a fight with #{fighter2}"
+end
 ```
 
 In this case, we would only receive notifications of fights involving
@@ -148,37 +145,38 @@ maximum flexibility in message routing.
 Let's say we want to publish the teaming up between Batman, Superman
 and the Joker:
 
-```python
-topic = exchange.topic({
-    'teamup': {
-        'superheroes': ['Batman', 'Superman'],
-        'supervillains': ['Joker'],
-    },
-    'surprising': True
-})
+```ruby
+topic_hash = {
+  :teamup => {
+    :superheroes => ['Batman', 'Superman'],
+    :supervillains => ['Joker'],
+  },
+  :suprising => true
+}
 
+topic = exchange.topic(topic_hash)
 topic.publish('Today Batman, Superman and the Joker teamed up '
               'in a suprising turn of events...')
 ```
 
 There are multiple subscriptions we could have set up that would receive this news:
 
-```python
+```ruby
 # Get all surprising messages
-surprising_filter = lambda topic: topic['surprising']
+surprising_filter = lambda {|topic| topic['surprising']}
 
 # Get all messages involving a teamup or a fight
-teamup_filter = lambda topic: topic['teamup'] | topic['fight']
+teamup_filter = lambda {|topic| topic['teamup'] | topic['fight']}
 
 # Get all messages talking about a teamup with Batman
-batman_query = lambda topic: topic['teamup']['superheroes'].contains('Batman')
+batman_query = lambda {|topic| topic['teamup']['superheroes'].contains('Batman')}
 ```
 
 
 ## Try out the repubsub demo ##
 
 The example documentation includes a
-[demo script](https://github.com/rethinkdb/example-pubsub/blob/master/python/demo.py')
+[demo script](https://github.com/rethinkdb/example-pubsub/blob/master/ruby/demo.rb')
 that shows off the three topic patterns described above. The script
 implements both a publisher and a subscriber with each pattern
 type. You can use this script to try out multiple publishers and
@@ -189,13 +187,13 @@ windows, so the output doesn't run together. For example, to run the
 publisher for the regex demo:
 
 ```bash
-$ ./demo.py regex publish
+$ ./demo.rb regex publish
 ```
 
 and in another window run:
 
 ```bash
-$ ./demo.py regex subscribe
+$ ./demo.rb regex subscribe
 ```
 
 You can run the `tags` and `hierarchy` demos the same way.
@@ -229,16 +227,19 @@ will change and a notification will be generated.
 
 The entire  query on the exchange is:
 
-```python
-# self.table is the Exchange's underlying table
+```ruby
+# @table is the Exchange's underlying table
 # filter_func is the function passed in by the subscriber
-self.table.changes()['new_val'].filter(lambda row: filter_func(row['topic']))
+@table.changes[:new_val].filter{|row| filter_func.call(row[:topic])}
 ```
 
 This query pulls out `new_val` from the changefeed, and passes just
 the topic field from the new value down to the subscriber's function.
 
-```python
-for message in self.full_query(binding).run(self.conn):
-    yield message['topic'], message['payload']
+```ruby
+full_query(filter_func).run(@conn).lazy.map do |message|
+  [message['topic'], message['payload']]
+end
 ```
+
+We use a lazy map since the changes stream is potentially infinite.
